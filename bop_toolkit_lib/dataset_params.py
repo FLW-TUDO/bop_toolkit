@@ -86,6 +86,7 @@ def get_model_params(datasets_path, dataset_name, model_type=None):
     'hb': list(range(1, 34)),  # Full HB dataset.
     'ycbv': list(range(1, 22)),
     'hope': list(range(1, 29)),
+    'mv': list(range(1, 2))
   }[dataset_name]
 
   # ID's of objects with ambiguous views evaluated using the ADI pose error
@@ -104,6 +105,7 @@ def get_model_params(datasets_path, dataset_name, model_type=None):
     'hb': [6, 10, 11, 12, 13, 14, 18, 24, 29],
     'ycbv': [1, 13, 14, 16, 18, 19, 20, 21],
     'hope': None,  # Not defined yet.
+    'mv': None
   }[dataset_name]
 
   # T-LESS includes two types of object models, CAD and reconstructed.
@@ -373,6 +375,19 @@ def get_split_params(datasets_path, dataset_name, split, split_type=None):
       p['azimuth_range'] = None  # Not calculated yet.
       p['elev_range'] = None  # Not calculated yet.
 
+  # Multiview
+  elif dataset_name == 'mv':
+    p['scene_ids'] = {
+      'train': [],
+      'val': [],
+      'test': list(range(1, 2))
+    }[split]
+    p['im_size'] = (1296, 1024)
+
+    if split == 'test':
+      p['depth_range'] = None  # Not calculated yet.
+      p['azimuth_range'] = None  # Not calculated yet.
+      p['elev_range'] = None  # Not calculated yet.
   else:
     raise ValueError('Unknown BOP dataset ({}).'.format(dataset_name))
 
