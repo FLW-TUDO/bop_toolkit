@@ -16,8 +16,12 @@ cams_ids = [0, 1]
 base_path = '/home/hazem/projects/multi_view_dataset'
 recording = 'recordings_test/11_11_11 08_11_2021'
 recording_path = os.path.join(base_path, recording)
+output_path = '/home/hazem/projects/multi_view_dataset/mv'
 
 def copy_images(req_img_id, out_path):
+    '''
+        Modifies names of raw images and copies them to dataset directory
+    '''
     for cam_id in cams_ids:
         imgs_path = os.path.join(recording_path, 'camera_'+str(cam_id), 'images')
         for img in sorted(glob.glob(os.path.join(imgs_path, '*.png'))):
@@ -85,9 +89,19 @@ def build_scene(mode):
     max_len = get_max_len(recording_path) # accounts for images' filtration
     for i in range(max_len):
         scene_id = f'{i:06d}'
-        out_path = os.path.join(recording_path, mode, scene_id)
-        for cam_id in cams_ids:
-            pass
+        out_path = os.path.join(output_path, mode, scene_id)
+        print(out_path)
+        if not os.path.exists(out_path):
+            os.makedirs(out_path)
+        create_scene_gt(i, out_path)
+        imgs_out_path = os.path.join(out_path, 'rgb')
+        if not os.path.exists(imgs_out_path):
+            os.makedirs(imgs_out_path)
+        copy_images(i, imgs_out_path)
+
+
+def build_dataset():
+    pass
 
 def get_max_len(recording_path):
     '''
@@ -103,10 +117,11 @@ def get_max_len(recording_path):
     return max_val
 
 if __name__ == '__main__':
-    cam_id = 0
-    cam_path = os.path.join(recording_path, 'camera_' + str(cam_id))
-    read_gt_csv(cam_path)
-    create_scene_gt(0, '/home/hazem/projects/multi_view_dataset/mv/test/000001')
+    #cam_id = 0
+    #cam_path = os.path.join(recording_path, 'camera_' + str(cam_id))
+    #read_gt_csv(cam_path)
+    #create_scene_gt(0, '/home/hazem/projects/multi_view_dataset/mv/test/000001')
     #test_dict()
     #copy_images(0, '/home/hazem/projects/multi_view_dataset/mv/test/000001')
-    get_max_len(recording_path)
+    #get_max_len(recording_path)
+    build_scene('test')
