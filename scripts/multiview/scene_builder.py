@@ -1,6 +1,7 @@
 #from scripts import calc_gt_info
 #from scripts import calc_gt_masks
 #from scripts.multiview import depth_generator
+import copy
 import os
 import csv
 import ast
@@ -9,14 +10,18 @@ import numpy as np
 import glob
 import shutil
 
-from bop_toolkit_lib.inout import save_scene_gt
+from bop_toolkit_lib.inout import save_scene_gt, save_scene_camera
+from depth_generator import generate_depth
 
 
 cams_ids = [0, 1]
 base_path = '/home/hazem/projects/multi_view_dataset'
 recording = 'recordings_test/11_11_11 08_11_2021'
 recording_path = os.path.join(base_path, recording)
-output_path = '/home/hazem/projects/multi_view_dataset/mv'
+dataset_name = 'mv'
+output_path = os.path.join(base_path, dataset_name)
+calib_params_path = os.path.join(base_path, dataset_name, 'calib_params.csv')
+
 
 def copy_images(req_img_id, out_path):
     '''
@@ -59,6 +64,7 @@ def read_gt_csv(cam_path):
     return out_dict
 
 # TODO: add obj2cam transformation
+# TODO: add ability to augment on existing scenes (for multiple recordings)
 def create_scene_gt(req_img_id, out_path):
     '''
         Combines GT values from all cameras for a particular 'snap' to create a json file
@@ -80,27 +86,66 @@ def create_scene_gt(req_img_id, out_path):
     save_scene_gt(out_path, out_dict)
     return out_dict
 
-#TODO: replace mode with dataset split
-def build_scene(mode):
+# TODO: add cam_t_w2c and cam_R_w2c
+def read_calib_params(calib_path):
     '''
+        Loads csv file with calib params and saves it to a dict
+    '''
+    out_dict = {}
+    content = {}
+    with open(calib_path) as f:
+        reader = csv.reader(f)
+        reader_list = list(reader)
+        # keys = reader_list[0]
+        for row in reader_list[1:]:
+            content['cam_K'] = np.asarray(ast.literal_eval(row[1]))
+            content['depth_scale'] = int(row[2])
+            content_copy = copy.deepcopy(content)
+            out_dict[row[0]] = content_copy
+        print(out_dict)
+    return out_dict
+
+def create_scene_camera(gt_dict, out_path):
+    '''
+        creates scene_camera.json for a scene using its GT values
+    '''
+    out_dict = {}
+    calib_params = read_calib_params(calib_params_path)
+    for img_id in sorted(gt_dict.keys()): # assuming filtered recordings
+        out_dict[img_id] = calib_params[img_id]
+    out_path = os.path.join(out_path, 'scene_camera.json')
+    save_scene_camera(out_path, out_dict)
+
+#TODO: replace mode with dataset split
+def build_scene(mode, scene_id):
+    '''
+        Builds all scenes of the dataset
     :param mode: train or test
     :return:
     '''
+    out_path = os.path.join(output_path, mode, scene_id)
+    print(out_path)
+    if not os.path.exists(out_path):
+        os.makedirs(out_path)
+    create_scene_gt(scene_id, out_path)
+    imgs_out_path = os.path.join(out_path, 'rgb')
+    if not os.path.exists(imgs_out_path):
+        os.makedirs(imgs_out_path)
+    copy_images(scene_id, imgs_out_path)
+    #create_scene_camera(calib_params, out_path)
+    #generate_depth(dataset_name, mode, base_path)
+    #calc gt info
+    #calc_gt_masks
+
+
+def build_dataset(mode):
     max_len = get_max_len(recording_path) # accounts for images' filtration
     for i in range(max_len):
         scene_id = f'{i:06d}'
-        out_path = os.path.join(output_path, mode, scene_id)
-        print(out_path)
-        if not os.path.exists(out_path):
-            os.makedirs(out_path)
-        create_scene_gt(i, out_path)
-        imgs_out_path = os.path.join(out_path, 'rgb')
-        if not os.path.exists(imgs_out_path):
-            os.makedirs(imgs_out_path)
-        copy_images(i, imgs_out_path)
-
-
-def build_dataset():
+        build_scene(mode, i)
+    #create mode dis - test, train
+    #calc_model_info
+    #build scene
     pass
 
 def get_max_len(recording_path):
@@ -120,8 +165,9 @@ if __name__ == '__main__':
     #cam_id = 0
     #cam_path = os.path.join(recording_path, 'camera_' + str(cam_id))
     #read_gt_csv(cam_path)
-    #create_scene_gt(0, '/home/hazem/projects/multi_view_dataset/mv/test/000001')
+    gt = create_scene_gt(0, '/home/hazem/projects/multi_view_dataset/mv/test/000001')
     #test_dict()
     #copy_images(0, '/home/hazem/projects/multi_view_dataset/mv/test/000001')
     #get_max_len(recording_path)
-    build_scene('test')
+    #build_scene('test')
+    create_scene_camera(gt, output_path)
