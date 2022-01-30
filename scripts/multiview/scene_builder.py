@@ -1,6 +1,3 @@
-#from scripts import calc_gt_info
-#from scripts import calc_gt_masks
-#from scripts.multiview import depth_generator
 import copy
 import os
 import csv
@@ -11,15 +8,34 @@ import glob
 import shutil
 
 from bop_toolkit_lib.inout import save_scene_gt, save_scene_camera
+from bop_toolkit_lib import dataset_params, config
 
+
+# PARAMETERS.
+################################################################################
+p = {
+  # See dataset_params.py for options.
+  'dataset': 'mv',
+
+  # Dataset split. Options: 'train', 'val', 'test'.
+  'dataset_split': 'test',
+
+  # Dataset split type. None = default. See dataset_params.py for options.
+  'dataset_split_type': None,
+
+  # Folder containing the BOP datasets.
+  'datasets_path': config.datasets_path,
+}
+################################################################################
+
+
+# Load dataset parameters.
+dp_split = dataset_params.get_split_params(
+  p['datasets_path'], p['dataset'], p['dataset_split'], p['dataset_split_type'])
 
 cams_ids = [0, 1]
-base_path = '/home/hazem/projects/multi_view_dataset'
 recording = 'recordings_test/11_11_11 08_11_2021'
-recording_path = os.path.join(base_path, recording)
-dataset_name = 'mv'
-output_path = os.path.join(base_path, dataset_name)
-calib_params_path = os.path.join(base_path, dataset_name, 'calib_params.csv')
+calib_params_path = os.path.join(p['datasets_path'], p['dataset'], 'calib_params.csv') #only full split path available from dp_split
 
 
 def copy_images(req_img_id, out_path):
@@ -28,6 +44,7 @@ def copy_images(req_img_id, out_path):
         :param req_img_id: img id of interest (i.e: scene id) in long format
     '''
     for cam_id in cams_ids:
+        recording_path = os.path.join(p['datasets_path'], recording)
         imgs_path = os.path.join(recording_path, 'camera_'+str(cam_id), 'images')
         for img in sorted(glob.glob(os.path.join(imgs_path, '*.png'))):
             img_id = img.split('_')[-1].split('.')[-2]
@@ -75,6 +92,7 @@ def create_scene_gt(req_img_id, out_path):
     out_dict = {}
     instances = 0
     for cam_id in cams_ids:
+        recording_path = os.path.join(p['datasets_path'], recording)
         cam_path = os.path.join(recording_path, 'camera_'+str(cam_id))
         gt_dict = read_gt_csv(cam_path)
         gt_dict_copy = copy.deepcopy(gt_dict)
@@ -129,7 +147,8 @@ def build_scene(mode, scene_id):
     :return:
     '''
     scene_id = f'{scene_id:06d}'
-    out_path = os.path.join(output_path, mode, scene_id)
+    out_path = os.path.join(dp_split['split_path'], scene_id)
+    #out_path = os.path.join(out_path, mode, scene_id)
     #print(out_path)
     if not os.path.exists(out_path):
         os.makedirs(out_path)
@@ -141,6 +160,7 @@ def build_scene(mode, scene_id):
     create_scene_camera(gt, out_path)
 
 def build_dataset(mode):
+    recording_path = os.path.join(p['datasets_path'], recording)
     max_len = get_max_len(recording_path) # accounts for images' filtration
     for i in range(max_len):
         build_scene(mode, i)
@@ -161,13 +181,4 @@ def get_max_len(recording_path):
     return max_val
 
 if __name__ == '__main__':
-    #cam_id = 0
-    #cam_path = os.path.join(recording_path, 'camera_' + str(cam_id))
-    #read_gt_csv(cam_path)
-    #gt = create_scene_gt(0, '/home/hazem/projects/multi_view_dataset/mv/test/000001')
-    #test_dict()
-    #copy_images(0, '/home/hazem/projects/multi_view_dataset/mv/test/000001')
-    #get_max_len(recording_path)
-    #build_scene('test')
-    #create_scene_camera(gt, output_path)
-    build_dataset('test')
+    build_dataset(dp_split['split_path'])
