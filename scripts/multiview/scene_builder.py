@@ -67,12 +67,13 @@ def read_gt_csv(cam_path):
         #print(reader_list)
         img_ids = []
         content = []
+        keys = reader_list[0]
         for row in reader_list[1:]:
-            img_id = int(os.path.split(row[2])[-1].split('.')[-2].split('_')[-1])
+            img_id = int(os.path.split(row[keys.index('imageName')])[-1].split('.')[-2].split('_')[-1])
             img_id = f'{img_id:06d}'
             #cam_id = int(os.path.split(row[2])[-1].split('.')[-2].split('_')[-1])
             #out_dict['cam_id'] = cam_id
-            entry = {'cam_t_m2c': np.asarray(ast.literal_eval(row[3])), 'cam_R_m2c': np.asarray(ast.literal_eval(row[4])), 'obj_id': int(row[0])}
+            entry = {'cam_t_m2c': np.asarray(ast.literal_eval(row[keys.index('camToObjTrans')])), 'cam_R_m2c': np.asarray(ast.literal_eval(row[keys.index('camToObjRot')])), 'obj_id': int(row[keys.index('objectID')])}
             if img_id not in img_ids:
                 content = []
             content.append(entry)
@@ -117,12 +118,12 @@ def read_calib_params(calib_path):
     with open(calib_path) as f:
         reader = csv.reader(f)
         reader_list = list(reader)
-        # keys = reader_list[0]
+        keys = reader_list[0]
         for row in reader_list[1:]:
-            content['cam_K'] = np.asarray(ast.literal_eval(row[1]))
-            content['depth_scale'] = int(row[2])
+            content['cam_K'] = np.asarray(ast.literal_eval(row[keys.index('cam_K')]))
+            content['depth_scale'] = int(row[keys.index('depth_scale')])
             content_copy = copy.deepcopy(content)
-            out_dict[row[0]] = content_copy
+            out_dict[row[keys.index('cam_id')]] = content_copy
         #print(out_dict)
     return out_dict
 
