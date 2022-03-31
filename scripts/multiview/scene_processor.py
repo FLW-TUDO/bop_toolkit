@@ -41,7 +41,7 @@ p = {
 dp_split = dataset_params.get_split_params(
     p['datasets_path'], p['dataset'], p['dataset_split'], p['dataset_split_type'])
 
-cams_ids = [0,7]
+cams_ids = [0, 1, 2, 3, 4, 5, 6, 7]
 # recording = '13_51 25_02_2022'
 calib_params_path = os.path.join(p['datasets_path'], p['dataset'],
                                  'calib_params.csv')  # only full split path available from dp_split

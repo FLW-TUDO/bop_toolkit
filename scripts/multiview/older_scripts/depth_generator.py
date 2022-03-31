@@ -48,7 +48,7 @@ for obj_id in dp_model['obj_ids']:
 
 scene_ids = dataset_params.get_present_scene_ids(dp_split)
 #for scene_id in tqdm(scene_ids):
-for scene_id in scene_ids:
+for scene_id in tqdm(scene_ids):
   scene_id_full = f'{scene_id:06d}'
   depth_dir_path = os.path.join(dp_split['split_path'], scene_id_full, 'depth')
   if not os.path.exists(depth_dir_path):
@@ -61,11 +61,11 @@ for scene_id in scene_ids:
 
   im_ids = sorted(scene_gt.keys())
   for im_counter, im_id in enumerate(im_ids):
-    if im_counter % 100 == 0:
-      misc.log(
-        'Calculating GT info - dataset: {} ({}, {}), scene: {}, im: {}'.format(
-          p['dataset'], p['dataset_split'], p['dataset_split_type'], scene_id,
-          im_id))
+    # if im_counter % 100 == 0:
+    #   misc.log(
+    #     'Calculating GT info - dataset: {} ({}, {}), scene: {}, im: {}'.format(
+    #       p['dataset'], p['dataset_split'], p['dataset_split_type'], scene_id,
+    #       im_id))
 
     K = scene_camera[im_id]['cam_K']
     fx, fy, cx, cy = K[0, 0], K[1, 1], K[0, 2], K[1, 2]
@@ -80,17 +80,22 @@ for scene_id in scene_ids:
       depth_gt = depth_gt_large[
                    ren_cy_offset:(ren_cy_offset + im_height),
                    ren_cx_offset:(ren_cx_offset + im_width)]
+      if np.sum(depth_gt) < 100 or np.sum(depth_gt) < 0.9 * np.sum(depth_gt_large):
+        print(gt['obj_id'], 'not in image')
+        continue
       depth_imgs.append(depth_gt)
-
 
     im_shape = np.shape(depth_gt)
     combined_depth_gt = np.zeros((im_shape[0], im_shape[1]))
-    print('Combining depth images..')
+    #print('Combining depth images..')
     for depth_img in depth_imgs:
       rows, columns = np.where(depth_img > 0)
       for i, j in zip(rows, columns):
         if (combined_depth_gt[i, j] == 0):  # updated by first non-zero value in any depth image
           combined_depth_gt[i, j] = depth_img[i, j]
+
+    combined_depth_gt = np.flipud(combined_depth_gt)
+    combined_depth_gt = np.fliplr(combined_depth_gt)
 
     inout.save_depth(dp_split['depth_tpath'].format(scene_id=scene_id, im_id=im_id), combined_depth_gt)
     #combined_depth_gt = np.asarray(combined_depth_gt, dtype=np.uint16)

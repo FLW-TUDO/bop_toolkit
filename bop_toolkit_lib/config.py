@@ -12,7 +12,7 @@ import os
 if 'BOP_PATH' in os.environ:
   datasets_path = os.environ['BOP_PATH']
 else:
-  datasets_path = '/home/hazem/projects/multi_view_dataset'
+  datasets_path = '/media/athos/DATA-III/projects/multiview_dataset'
 
 # Folder with pose results to be evaluated.
 results_path = r'/path/to/folder/with/results'

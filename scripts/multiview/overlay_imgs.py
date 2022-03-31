@@ -2,14 +2,17 @@ import numpy as np
 import cv2
 
 
-mtx = np.array([[859.90825492,   0.        , 654.08289216],
-     [  0.        , 859.12593446, 497.68761377],
-     [  0.        ,   0.        ,   1.        ]])
-newcameramtx = np.array([[795.02294922,   0.        , 652.47181967],
-              [  0.        , 796.08612061, 493.5983575  ],
-              [  0.        ,   0.        ,   1.         ]])
-dist = np.array([[-0.164644  ,  0.09254984, -0.00237873, -0.0005464 ,  0.00101041]])
-roi = (5, 11, 1284, 1000)
+mtx = np.array([[861.59229782,   0.        , 629.39824799],
+                [  0.        , 861.13244676, 526.14365127],
+                [  0.        ,   0.        ,   1.        ]])
+newcameramtx = np.array([[799.56201172,   0.        , 628.6002021 ],
+                         [  0.        , 799.69110107, 526.90323354],
+                         [  0.        ,   0.        ,   1.        ]])
+dist = np.array([[-0.16757778,  0.1080619 ,  0.00078127, -0.00021056, -0.01003737]])
+roi = (5, 11, 1287, 1001)
+
+cam_locations_csv_file = '../cam_locations.csv'  # final csv file
+calib_params_csv_file = '../calib_params_all.csv'
 
 def undistort(img_path, mtx, dist, newcameramtx, roi, visualize):
     '''
@@ -30,11 +33,11 @@ def undistort(img_path, mtx, dist, newcameramtx, roi, visualize):
 img_rgb = '/media/athos/DATA-III/projects/multiview_dataset/mv/test/000000/rgb/000001.png'
 img_depth = '/media/athos/DATA-III/projects/multiview_dataset/mv/test/000000/depth/000001.png'
 
-# img_rgb = undistort(img_rgb, mtx, dist, newcameramtx, roi, False)
+#img_rgb = undistort(img_rgb, mtx, dist, newcameramtx, roi, False)
 img_rgb = cv2.imread(img_rgb)
 img_depth = cv2.imread(img_depth)
 
-img_depth = np.fliplr(img_depth) ######
+#img_depth = np.fliplr(img_depth) ######
 
 print(np.shape(img_rgb))
 print(np.shape(img_depth))
