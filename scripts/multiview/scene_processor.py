@@ -67,9 +67,6 @@ for obj_id in dp_model['obj_ids']:
   ren.add_object(obj_id, model_fpath)
 
 
-
-
-
 def get_homogenous_form(rot, trans):
     '''
     @param rot: rotation matrix
@@ -84,7 +81,7 @@ def get_homogenous_form(rot, trans):
     return mat_homog
 
 
-cam_locations_csv_file = '/media/athos/DATA-III/projects/RGB-Camera-System/cam_locations.csv'
+cam_locations_csv_file = 'initial_cam_locations.csv'
 camera2vicon = {}
 with open(cam_locations_csv_file) as f:
     reader = csv.reader(f)
@@ -148,6 +145,7 @@ def generate_gt_transformation(cam_id, obj2vicon_trans, obj2vicon_rot):
 
 
 def generate_depth_image(gt, cam_id):
+    scene_camera = read_calib_params(calib_params_path)
     K = scene_camera[str(cam_id)]['cam_K']
     fx, fy, cx, cy = K[0, 0], K[1, 1], K[0, 2], K[1, 2]
     # Render depth image of the object model in the ground-truth pose.
@@ -237,7 +235,6 @@ def create_scene_gt(scene_id, recording_path, out_path, gt, imgs_out_path):
     '''
         Combines GT values from all cameras for a particular 'snap' to create a json file
         Img_id: id of interest to concatenate from all cameras to build a scene
-        :param req_img_id: img id of interest (i.e: scene id) in long format
     '''
     out_dict = {}
 
@@ -391,5 +388,5 @@ def get_max_len(recording_path):
 
 
 if __name__ == '__main__':
-    scene_camera = read_calib_params(calib_params_path)
+    # scene_camera = read_calib_params(calib_params_path)
     build_dataset(dp_split['split_path'])
