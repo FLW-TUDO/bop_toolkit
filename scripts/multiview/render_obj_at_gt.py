@@ -46,14 +46,37 @@ def initialize_renderer(models_path):
         model_path = os.path.join(models_path, 'obj_{obj_id:06d}.ply')
         model_fpath = model_path.format(obj_id=obj_id)
         ren.add_object(obj_id, model_fpath)
+    return ren, ren_cx_offset, ren_cy_offset
 
 
-def generate_depth_image(obj_id, obj_trans, obj_rot, cam_id):
+def get_obj2vicon_transform(req_cam_id, req_img_id, req_obj_id):
+    '''
+    obj2vicon for a single object
+    '''
+    csv_path = os.path.join('./location_tuner_images', f'camera_{req_cam_id}')
+    with open(csv_path, 'r') as f:
+        reader = list(csv.reader(f))
+        for row in reader:
+            img_id = os.path.split(row[1])[-1].split('.')[-2]
+            if int(img_id) == req_img_id and int(row[0]) == req_obj_id:
+                return row[2], row[3]
+
+
+def get_obj2cam_transform(req_cam_id, req_img_id, req_obj_id, cam2vicon_trans, cam2vicon_rot):
+    obj2vicon_trans, obj2vicon_rot = get_obj2vicon_transform(req_cam_id, req_img_id, req_obj_id)
+    if obj2vicon_trans == None or obj2vicon_rot == None:
+        return None
+
+
+def generate_depth_image(cam_id, obj_id, obj2cam_trans, obj2cam_rot):
+    '''
+    Generates depth image for a single object
+    '''
     _, K, _, _= get_calib_params(calib_params_csv, cam_id)
     fx, fy, cx, cy = K[0, 0], K[1, 1], K[0, 2], K[1, 2]
     # Render depth image of the object model in the ground-truth pose.
     depth_gt_large = ren.render_object(
-        obj_id, obj_trans, obj_rot,
+        obj_id, obj2cam_trans, obj2cam_rot,
         fx, fy, cx + ren_cx_offset, cy + ren_cy_offset)['depth']
     depth_gt = depth_gt_large[
                ren_cy_offset:(ren_cy_offset + im_height),
@@ -71,11 +94,24 @@ def combine_depth_images(depth_images, camera_id):
         for i, j in zip(rows, columns):
             if (combined_depth_gt[i, j] == 0):  # updated by first non-zero value in any depth image
                 combined_depth_gt[i, j] = depth_img[i, j]
-
     combined_depth_gt = np.flipud(combined_depth_gt)
     combined_depth_gt = np.fliplr(combined_depth_gt)
-
     # save_depth(os.path.join(depth_images, ), combined_depth_gt)
+    return combined_depth_gt
+
+def get_combined_depth_img(cam_id, img_id, cam2vicon_trans, cam2vicon_rot):
+    obj_ids = list(range(1,5))
+    depth_imgs = []
+    for obj_id in obj_ids:
+        obj2cam_trans, obj2cam_rot = get_obj2cam_transform(cam_id, img_id, obj_id, cam2vicon_trans, cam2vicon_rot)
+        if obj2cam_trans == None or obj2cam_rot == None:
+            continue
+        depth_img = generate_depth_image(cam_id, obj_id, obj2cam_trans, obj2cam_rot)
+        depth_imgs.append(depth_img)
+    combined_depth_img = combine_depth_images(depth_imgs)
+    return combined_depth_img
+
+
 
 def save_img():
     pass
