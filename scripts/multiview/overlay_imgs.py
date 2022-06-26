@@ -26,12 +26,14 @@ def undistort_img(img, mtx, dist, newcameramtx, roi):
     # undistorted_img = undistorted_img[y:y+h, x:x+w]
     return undistorted_img
 
-def overlay_img(rgb_img, depth_img, cam_id, undistort=False):
+def overlay_img(rgb_img, depth_img, cam_id=0, undistort=False):
     # rgb_img = cv2.imread(rgb_img_path)
     # depth_img = cv2.imread(depth_img_path)
+    gray_val =  100 # gray scale value for visualization purposes
     if undistort:
         mtx, dist, newcameramtx, roi = get_calib_params(calib_params_csv_file, cam_id)
         rgb_img = undistort_img(rgb_img, mtx, dist, newcameramtx, roi)
+    depth_img[depth_img == 255] = gray_val
     res_img = cv2.add(rgb_img, depth_img) # cv2.add clips the values beyond 255 unlike numpy
     while True:
         cv2.imshow('overlay', res_img)
@@ -45,6 +47,7 @@ def overlay_img(rgb_img, depth_img, cam_id, undistort=False):
             img_name = f'{scene_id:06d}_{img_id:06d}'
             cv2.imwrite(f'./overlaid_imgs/{img_name}.png', res_img)
         cv2.destroyAllWindows()
+    return res_img
 
 
 if __name__ == '__main__':
