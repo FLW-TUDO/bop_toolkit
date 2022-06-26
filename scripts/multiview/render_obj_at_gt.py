@@ -13,6 +13,11 @@ from utils import convert_to_rot_mat
 from overlay_imgs import overlay_img
 
 
+'''
+The script renders the object models at their ground truth positions with respect to the camera using stored
+absolute location of the objects and the camera parameters
+'''
+
 class DepthGenerator:
     def __init__(self, calib_params_csv_path, models_path, im_size, obj_ids):
         self.calib_params_csv_path = calib_params_csv_path
@@ -55,7 +60,7 @@ class DepthGenerator:
             obj2vicon_transforms = {}
             for row in reader:
                 img_id = os.path.split(row[1])[-1].split('.')[-2]
-                if img_id == req_img_id:
+                if str(img_id) == str(req_img_id):
                     obj2vicon_trans = ast.literal_eval(row[2])
                     obj2vicon_rot = ast.literal_eval(row[3])
                     obj2vicon_transforms[str(row[0])] = [obj2vicon_trans, obj2vicon_rot]
@@ -115,10 +120,13 @@ class DepthGenerator:
         obj2cam_transforms = self.get_obj2cam_transform(cam_id, img_id, cam2vicon_trans, cam2vicon_rot)
         depth_imgs = self.generate_depth_images(ren, cam_id, obj2cam_transforms)
         combined_depth_img = self.combine_depth_images(depth_imgs)
+        combined_depth_img[combined_depth_img > 0] = 255 # a white mask is generated for each object
+        combined_depth_img = combined_depth_img.astype(np.uint8) # convert from float64 to uint8
+        combined_depth_img = cv2.merge([combined_depth_img, combined_depth_img, combined_depth_img]) # convert to RGB
         return combined_depth_img
 
-    def save_img(self, img, path):
-        cv2.imwrite((os.path.join(path, 'test.png')), img)
+    def save_img(self, img, img_id, path):
+        cv2.imwrite((os.path.join(path, f'{img_id}_depth.png')), img)
 
 
 
@@ -136,12 +144,7 @@ if __name__ == '__main__':
     img_id = 123
     depth_img = depth_gen.get_combined_depth_img(cam_id=cam_id, img_id=img_id, ren=ren, cam2vicon_trans=[526.8575593558775, -5600.212355673482, 4850],
                                        cam2vicon_rot=[-143.000,  0.0000000, -180])
-    depth_gen.save_img(depth_img, depth_imgs_path)
-
-    # convert depth image from 1 channel float64 to 3 channels uint8
-    depth_img = depth_img.astype(np.uint8)
-    depth_img = cv2.merge([depth_img, depth_img, depth_img])
+    depth_gen.save_img(depth_img, img_id, depth_imgs_path)
 
     rgb_img = cv2.imread(f'./location_tuner_images/camera_{cam_id}/images/{img_id}.png')
     overlay_img(rgb_img, depth_img, cam_id)
-
