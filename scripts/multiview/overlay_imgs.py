@@ -26,16 +26,16 @@ def undistort_img(img, mtx, dist, newcameramtx, roi):
     # undistorted_img = undistorted_img[y:y+h, x:x+w]
     return undistorted_img
 
-def overlay_img(rgb_img, depth_img, cam_id=0, undistort=False):
+def overlay_img(rgb_img, depth_img, cam_id=0, undistort=False, display=True):
     # rgb_img = cv2.imread(rgb_img_path)
     # depth_img = cv2.imread(depth_img_path)
     gray_val =  100 # gray scale value for visualization purposes
     if undistort:
         mtx, dist, newcameramtx, roi = get_calib_params(calib_params_csv_file, cam_id)
         rgb_img = undistort_img(rgb_img, mtx, dist, newcameramtx, roi)
-    depth_img[depth_img == 255] = gray_val
+    depth_img[depth_img >= 200] = gray_val
     res_img = cv2.add(rgb_img, depth_img) # cv2.add clips the values beyond 255 unlike numpy
-    while True:
+    while display:
         cv2.imshow('overlay', res_img)
         key = cv2.waitKey(0)
         if key == 32: #press 'q' to exit
@@ -51,6 +51,8 @@ def overlay_img(rgb_img, depth_img, cam_id=0, undistort=False):
 
 
 if __name__ == '__main__':
-    rgb_img_path = cv2.imread('/media/athos/DATA-III/projects/000000/rgb/000001.png')
-    depth_img_path = cv2.imread('/media/athos/DATA-III/projects/000000/depth/000001.png')
-    overlay_img(rgb_img_path, depth_img_path, cam_id=1, undistort=False) # only calibration parameters used in model projection
+    rgb_img_path = cv2.imread('/media/athos/DATA-III/projects/bop_toolkit/scripts/multiview/location_tuner_images/camera_6/images/123.png')
+    print(np.shape(rgb_img_path))
+    depth_img_path = cv2.imread('/media/athos/DATA-III/projects/bop_toolkit/scripts/multiview/location_tuner_images/res_imgs/trial_2/9830_53.png')
+    print(np.shape(depth_img_path))
+    overlay_img(rgb_img_path, depth_img_path, cam_id=6, undistort=False) # only calibration parameters used in model projection
