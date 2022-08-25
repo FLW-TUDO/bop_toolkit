@@ -14,22 +14,24 @@ from overlay_imgs import overlay_img
 
 
 '''
-The script renders the object models at their ground truth positions with respect to the camera using stored
-absolute location of the objects and the camera parameters
+The script renders the 3D object models at their ground truth positions with respect to the camera using stored
+absolute location of the objects (i.e: wrt vicon) and the camera parameters
 '''
 
 class DepthGenerator:
-    def __init__(self, calib_params_csv_path, models_path, im_size, obj_ids):
+    def __init__(self, cam_id, obj2vicon_csv_path, calib_params_csv_path, models_path, im_size, obj_ids):
         self.calib_params_csv_path = calib_params_csv_path
         self.models_path = models_path
         self.im_size = im_size
         self.obj_ids = obj_ids
+        self.cam_id = cam_id
+        self.obj2vicon_csv_path = obj2vicon_csv_path
 
-    def get_calib_params(self, csv_path, cam_id):
+    def get_calib_params(self, csv_path):
         with open(csv_path, 'r') as f:
             reader = list(csv.reader(f))
             for row in reader:
-                if row[0] == str(cam_id):
+                if row[0] == str(self.cam_id):
                     mtx = ast.literal_eval(row[1])
                     newcameramatrix = ast.literal_eval(row[2])
                     dist = ast.literal_eval(row[3])
@@ -49,13 +51,12 @@ class DepthGenerator:
             ren.add_object(obj_id, model_fpath)
         return ren
 
-    def get_obj2vicon_transforms(self, req_cam_id, req_img_id):
+    def get_obj2vicon_transforms(self, req_img_id):
         '''
         Provides translation and rotation vectors for all objects in a particular image as a dict.
         Object ID is used as a key
         '''
-        csv_path = os.path.join('./location_tuner_images', f'camera_{req_cam_id}', 'data.csv')
-        with open(csv_path, 'r') as f:
+        with open(self.obj2vicon_csv_path, 'r') as f:
             reader = list(csv.reader(f))
             obj2vicon_transforms = {}
             for row in reader:
@@ -66,8 +67,8 @@ class DepthGenerator:
                     obj2vicon_transforms[str(row[0])] = [obj2vicon_trans, obj2vicon_rot]
         return obj2vicon_transforms
 
-    def get_obj2cam_transform(self, req_cam_id, req_img_id, cam2vicon_trans, cam2vicon_rot):
-        obj2vicon_transforms = self.get_obj2vicon_transforms(req_cam_id, req_img_id)
+    def get_obj2cam_transform(self, req_img_id, cam2vicon_trans, cam2vicon_rot):
+        obj2vicon_transforms = self.get_obj2vicon_transforms(req_img_id)
         obj2cam_transforms = {}
         for obj_id in list(obj2vicon_transforms.keys()):
             obj2vicon_rot = R.from_euler('XYZ', obj2vicon_transforms[obj_id][1], degrees=False)
@@ -85,8 +86,8 @@ class DepthGenerator:
             obj2cam_transforms[obj_id] = [obj2cam_trans, obj2cam_rot]
         return obj2cam_transforms
 
-    def generate_depth_images(self, ren, cam_id, obj2cam_transforms):
-        _, K, _, _ = self.get_calib_params(self.calib_params_csv_path, cam_id)
+    def generate_depth_images(self, ren, obj2cam_transforms):
+        _, K, _, _ = self.get_calib_params(self.calib_params_csv_path)
         fx, fy, cx, cy = K[0][0], K[1][1], K[0][2], K[1][2]
         ren_cx_offset, ren_cy_offset = self.im_size[0], self.im_size[1]
         depth_imgs = []
@@ -116,9 +117,9 @@ class DepthGenerator:
         # save_depth(os.path.join(depth_images, ), combined_depth_gt)
         return combined_depth_gt
 
-    def get_combined_depth_img(self, cam_id, img_id, ren, cam2vicon_trans, cam2vicon_rot):
-        obj2cam_transforms = self.get_obj2cam_transform(cam_id, img_id, cam2vicon_trans, cam2vicon_rot)
-        depth_imgs = self.generate_depth_images(ren, cam_id, obj2cam_transforms)
+    def get_combined_depth_img(self, img_id, ren, cam2vicon_trans, cam2vicon_rot):
+        obj2cam_transforms = self.get_obj2cam_transform(img_id, cam2vicon_trans, cam2vicon_rot)
+        depth_imgs = self.generate_depth_images(ren, obj2cam_transforms)
         combined_depth_img = self.combine_depth_images(depth_imgs)
         combined_depth_img[combined_depth_img > 0] = 255 # a white mask is generated for each object
         combined_depth_img = combined_depth_img.astype(np.uint8) # convert from float64 to uint8
@@ -137,12 +138,14 @@ if __name__ == '__main__':
     obj_ids = list(range(1, 5))
     depth_imgs_path = './location_tuner_images/depth_imgs'
 
-    depth_gen = DepthGenerator(calib_params_csv, models_path, im_size, obj_ids)
+    cam_id = 6
+    obj2vicon_csv_path = os.path.join('./location_tuner_images', f'camera_{cam_id}', 'data.csv')
+    depth_gen = DepthGenerator(6, obj2vicon_csv_path, calib_params_csv, models_path, im_size, obj_ids)
     ren = depth_gen.initialize_renderer()
 
-    cam_id = 6
+
     img_id = 123
-    depth_img = depth_gen.get_combined_depth_img(cam_id=cam_id, img_id=img_id, ren=ren, cam2vicon_trans=[526.8575593558775, -5600.212355673482, 4850],
+    depth_img = depth_gen.get_combined_depth_img(img_id=img_id, ren=ren, cam2vicon_trans=[526.8575593558775, -5600.212355673482, 4850],
                                        cam2vicon_rot=[-143.000,  0.0000000, -180])
     depth_gen.save_img(depth_img, img_id, depth_imgs_path)
 
