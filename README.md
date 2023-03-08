@@ -9,6 +9,13 @@ A Python toolkit of the BOP benchmark for 6D object pose estimation
 - **scripts** - Scripts for evaluation, rendering of training images,
   visualization of 6D object poses etc.
 
+## Annotation Pipeline for Multi-view 6D Object Pose Estimation
+We present an annotation pipeline to automatically annotate monocular RGB images. Our approach localizes cameras in space, unifies their location with a motion capture system, and uses a set of linear mappings to project 3D models of objects of interest at their ground truth 6D pose locations. 
+
+![](./pipeline_flow_2.png "Annotation Pipeline")
+<p style="text-align: center;">Overview of our annotation pipeline</p>
+
+
 ## Installation
 
 ### Python Dependencies
